@@ -1,0 +1,41 @@
+http://172.16.233.10/PLMRA502/DocumentTransfer.asmx
+
+  ALTER TABLE ExportPDFRecord ADD isUpload int default 0
+  ALTER TABLE ExportPDFRecord ADD isRemove int default 0
+
+  select top 1 id as AutoId, pdf.ptEncounterId, reportDate, filePath, pdf.id as DocId, pdf.CreateTime as DocDate , Verifyer as Author from ExportPDFRecord pdf
+  left join Form form on pdf.FormID=form.FormID
+  where isUpload is not null and isUpload=0   and form.State=2  order by id desc
+
+  select top 1 id as AutoId, pdf.ptEncounterId, reportDate, filePath, pdf.FormID as DocId, pdf.CreateTime as DocDate , Verifyer as Author from ExportPDFRecord pdf
+  inner join Form form on pdf.FormID=form.FormID 
+  where form.State=1 and isRemove=0 order by id desc
+
+
+  SELECT 
+	pat.lifetimeNumber as PatientNo,
+              enc.encounterNumber as Gestno,
+			  enc.encounterNumber as Mzh,
+              ppd.terseForm AS PatientName,
+              bed.displayLabel AS BedNo
+        FROM	CISPrimaryDB.dbo.Patient AS pat WITH (NOLOCK)
+                INNER JOIN CISPrimaryDB.dbo.PtEpisode AS epi WITH (NOLOCK) ON epi.patientId = pat.patientId
+                  INNER JOIN CISPrimaryDB.dbo.PtEncounter AS enc WITH (NOLOCK) ON enc.ptEpisodeId = epi.ptEpisodeId
+                    INNER JOIN CISPrimaryDB.dbo.PtPatientDetail as ppd WITH (NOLOCK) ON ppd.ptEncounterId = enc.ptEncounterId 
+                      AND ppd.dataElementConceptId = '9F8CDAC4-96D4-4BE7-A9CC-D9B3FA7FD9B6'  
+                      AND ppd.attributePropname IS NULL
+                    INNER JOIN CISPrimaryDB.dbo.PtLocationStay AS loc WITH (NOLOCK) ON loc.ptEncounterId = enc.ptEncounterId
+                      INNER JOIN CISPrimaryDB.dbo.ClinicalUnit as unt WITH (NOLOCK) ON unt.clinicalUnitId = loc.clinicalUnitId
+                      LEFT JOIN CISPrimaryDB.dbo.Bed AS bed WITH (NOLOCK) ON bed.bedId = loc.bedId
+                    INNER JOIN CISPrimaryDB.dbo.HostDb AS hos WITH (NOLOCK) ON hos.hostDbId = enc.hostDbId
+        	  where enc.ptEncounterId='" + data.PtEncounterId + "'
+
+
+
+			  SELECT
+        pin.terseForm AS value_t
+  FROM	CISChartingDB1.dbo.PtIntervention pin 
+          INNER JOIN CISChartingDB1.dbo.Intervention itv ON itv.interventionId = pin.interventionId
+  WHERE pin.isDeleted = 0 AND pin.ptInterventionVersion = CISChartingDB1.dbo.UfnGetPtInterventionLatestVersion(pin.ptInterventionId) 
+        AND (pin.terseForm IS NOT NULL OR pin.verboseForm IS NOT NULL)
+		and pin.ptEncounterId='" + data.PtEncounterId + "' and itv.propname='genderInt'
